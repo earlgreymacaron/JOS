@@ -56,5 +56,17 @@ Exercise 10:
     sub    $0x10,%rsp
     mov    %edi,-0x4(%rbp)"
     This is the prologue of x86-64 calling convention where it sets up the stack 
-    for called function. 
-
+    for called function. First, it pushes 'the rbp of caller stack' onto stack. 
+    Then, the rsp becames callee functions's rbp. And then, the callee stack is 
+    unfolded by subtracting 0x10 from rsp. Lastly, the argument (x) passed by 
+    edi is put into stack at 0x4 below rbp. 
+    
+    Stack of test_backtrace() after the lines above:
+    ---------
+     old rbp 
+    --------- <- rbp
+        x
+    --------- <- rbp - 0x4 
+        :
+        :
+    --------- <- rsp (= rbp - 0x10)
