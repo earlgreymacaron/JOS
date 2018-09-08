@@ -1,0 +1,60 @@
+Exercise 3:
+-> After getting E820 memory map from BIOS, PE flag is set in CR0 register by
+   "orl     $CR0_PE_ON, %eax
+    movl    %eax, %cr0"
+   and then,
+   "ljmp    $PROT_MODE_CSEG, $protcseg"
+   where the processor continues the execution with 32 bit protected mode.
+   At this point, address translation to higher virtual memory using PT is ready.
+-> The last instruction of the bootloader is calling the entry point of kernel ELFHR 
+   in bootmain() function in main.c. The first instruction of the kernel is
+   saving the multiboot_info address passed by bootloader.
+-> In bootmain() of main.c, there is a for loop which repeatedly calls readseg()
+   function. This readseg() function loads each program segment. bootmain() knows
+   how many segments to fetch because in ELF header there is e_phnum, which is·
+   the number of program headers.·
+   "ph = (struct Proghdr *) ((uint8_t *) ELFHDR + ELFHDR->e_phoff);
+    eph = ph + ELFHDR->e_phnum;
+    for (; ph < eph; ph++)
+      readseg(ph->p_pa, ph->p_memsz, ph->p_offset);"
+
+Exercise 6:
+-> Initially there is nothing in 0x00100000 when BIOS enters the boot loader -
+   the contents are all just 0s. When the boot loader enters the kernel (which
+   is done at 0x7dd7 by instruction 'call *0x10018'), 0x100000 is filled with
+   instructions. (0x10000 is the address of ELFHR and 0x18 is the offset of 
+   e_entry. By dereferencing 0x10018, it jump to 0x100000, which is the value 
+   in there.) This makes sense because, by this point of execution, bootmain()
+   has loaded the kernel at this address so that it can jump there.
+
+Exercise 7:
+-> The first instruction after the new mapping that would fail if the old mappings
+   were still in place is
+   "movabs  $relocated,%rax
+    pushq   %rax
+    lretq"
+   Just before these lines, the segmentation setup happens, and this is the part 
+   where translation is "really" activated. The code above moves the address of 
+   $relocated to %rax, pushes it into the stack and tries to return. However, 
+   this would fail if the old mapping were still in place. The address of $relocated
+   is 0x8004200036, which is evidently VA. If the new mapping is not set properly, 
+   the program cannot find the real physical address of $relocated. 
+
+Exercise 9:
+-> Stack setup is done in kern/entry.S by the following lines
+   "movabs  $(bootstacktop),%rax
+    movq    %rax,%rsp"
+   This is before jumping to C code. bootstacktop's address is 0x800421c000, which 
+   is in the data section of kernel ELF. The size of stack is 0x10000 because 
+   kernel's .data section starts at 000000800420c000. 0x800421c000 is the "end" 
+   the stack pointer is pointing at.
+
+Exercise 10:
+-> When test_backtrace is called, the following instructions take place:
+   "push   %rbp
+    mov    %rsp,%rbp
+    sub    $0x10,%rsp
+    mov    %edi,-0x4(%rbp)"
+    This is the prologue of x86-64 calling convention where it sets up the stack 
+    for called function. 
+
