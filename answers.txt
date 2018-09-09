@@ -45,9 +45,11 @@ Exercise 9:
    "movabs  $(bootstacktop),%rax
     movq    %rax,%rsp"
    This is before jumping to C code. bootstacktop's address is 0x800421c000, which 
-   is in the data section of kernel ELF. The size of stack is 0x10000 because 
-   kernel's .data section starts at 000000800420c000. 0x800421c000 is the "end" 
-   the stack pointer is pointing at.
+   is in the data section of kernel ELF. This is where the kernel reserves space 
+   for its stack. The size of stack is 0x10000 as kernel's .data section starts 
+   at 000000800420c000. Also, in entry.S, we can check that there is .space in .data
+   section with the size of KSTKSIZE, which is defined as 16*PGSIZE (in inc/memlayout.h). 
+   0x800421c000 is the "end" the stack pointer is pointing at. 
 
 Exercise 10:
 -> When test_backtrace is called, the following instructions take place:
