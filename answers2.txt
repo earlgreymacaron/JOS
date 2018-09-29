@@ -1,0 +1,28 @@
+[UNFINISHED]
+
+Question 1:
+-> x's type should be 'uintptr_t' because 'value' has type 'char *' which would
+   be 'uintptr_t', not a physical address. Physical address is (almost) never
+   used in user program codes.
+
+Question 3:
+-> Kernel memory is protected because each entry of page table contains bits
+   to check the "owner" of each page. If the page is not supposed to be accessed
+   by user programs, then PTE_U flag will not be set. When this page is attempted
+   to access, the hardware will check the permissions. Also, one physical page can
+   be mapped to multiple virtual pages (e.g. UPAGES and pages). These virtual
+   pages will have different flags in the last 12 bits, allowing isolation between
+   processes referencing same pages.
+
+Question 4:
+-> The maximym amount of physical memory that this operating system can support
+   is 256M, which is 0x10000000 bytes. This is computed when the OS boots up, in
+   i386_detect_memory(), before starting any memory set up. The number of pages
+   available is 0x10000 (= 65536 = npages). If we multiply this by PGSIZE, we get
+   256M of memory.
+
+Question 5:
+-> First, the size of 'pages', which is the metadata for all physical pages, is
+   0x10*npages = 0x100000. Then, there are more overheads caused by page directories,
+   page directory pointers, page tables.
+
