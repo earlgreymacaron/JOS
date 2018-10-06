@@ -27,6 +27,7 @@ struct Command {
 static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
+  { "backtrace", "Display series of currently active function calls", mon_backtrace },
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
 
@@ -61,8 +62,37 @@ mon_kerninfo(int argc, char **argv, struct Trapframe *tf)
 int
 mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 {
-	// Your code here.
-	return 0;
+    uint64_t rip,rbp,ret_addr;
+    struct Ripdebuginfo info;
+    int i, offset;
+    int64_t CFA,arg_addr,arg;
+
+    cprintf("Stack backtrace:\n");
+    read_rip(rip);
+    rbp = read_rbp();
+    while (rbp != 0x0) {
+      cprintf("  rbp %016x  rip %016x\n",rbp, rip);
+      debuginfo_rip(rip, &info);
+      cprintf("       %s:%d: %s+%016x  args:%d",
+              info.rip_file,info.rip_line,info.rip_fn_name,rip - info.rip_fn_addr,info.rip_fn_narg);
+
+      //The rule to calculate CFA is in reg_table's cfa_rule: 
+      //cprintf("dw_regnum=%d, dw_offset=%d\n",info.reg_table.cfa_rule.dw_regnum, info.reg_table.cfa_rule.dw_offset);
+      CFA = rbp + 16;
+
+      for (i = 0; i < info.rip_fn_narg; i++) {
+        arg_addr = CFA + info.offset_fn_arg[i];
+        memcpy(&arg, (void *) arg_addr, info.size_fn_arg[i]);
+        cprintf("   %016x", arg);
+        //cprintf("\n %dth arg (%d) at %016x which is %016x from CFA",i, info.size_fn_arg[i], arg_addr, info.offset_fn_arg[i]);
+      }
+      cprintf("\n");
+
+      //Set rip and rbp to the ones of previous(callee) stack 
+      rip = *(uint64_t *)(rbp + 8);
+      rbp = *(uint64_t *)rbp;
+    }
+    return 0;
 }
 
 
