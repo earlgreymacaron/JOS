@@ -89,10 +89,10 @@ syscall(uint64_t syscallno, uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4, 
       return sys_cgetc();
 
     case(SYS_getenvid):
-      return sys_env_destroy((envid_t) a1);
+      return sys_getenvid();
 
     case(SYS_env_destroy):
-      return sys_getenvid();
+      return sys_env_destroy((envid_t) a1);
 
 	  default:
 		  return -E_INVAL;

@@ -879,12 +879,10 @@ user_mem_check(struct Env *env, const void *va, size_t len, int perm)
   int i;
   size_t pages_to_check;
 
-  cprintf("user_mem_check(): va = 0x%lx, len = 0x%lx\n", va, len);
 
   lowerb = ROUNDDOWN((uint64_t) va, PGSIZE);
   upperb = ROUNDUP((uint64_t) (va + len), PGSIZE);
   pages_to_check = (upperb - lowerb) / PGSIZE ;
-  cprintf("pages to check = %d\n",pages_to_check);
 
   perm = perm | PTE_P;
 
@@ -892,9 +890,8 @@ user_mem_check(struct Env *env, const void *va, size_t len, int perm)
   // Check each page
   for (i = 0; i < pages_to_check; i++) {
     test_addr = lowerb + i*PGSIZE;
-    cprintf("test_addr = 0x%lx\n", test_addr);
 
-    // Watch out for edge cases
+    // Check if within the bound of memory
     if (test_addr <= 0) {
       user_mem_check_addr = (uintptr_t) va;
       return -E_FAULT;
@@ -920,7 +917,6 @@ user_mem_check(struct Env *env, const void *va, size_t len, int perm)
       return -E_FAULT;
     }
   }
-  //cprintf("user_mem_check() finish");
 
   return 0;
 

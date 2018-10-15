@@ -132,7 +132,6 @@ env_init(void)
     env_free_list = &envs[i];
   }
 
-  cprintf("env_free_list = envs[%d]\n", env_free_list - envs);
 
 	// Per-CPU part of the initialization
 	env_init_percpu();
@@ -298,14 +297,11 @@ region_alloc(struct Env *e, void *va, size_t len)
   int perm,r, i;
   size_t pages_needed;
 
-  //cprintf("region_alloc(): va = 0x%lx, len = 0x%lx\n", va, len);
 
   lowerb = ROUNDDOWN((uint64_t) va, PGSIZE);
   upperb = ROUNDUP((uint64_t) (va + len), PGSIZE);
   pages_needed = (upperb - lowerb) / PGSIZE ;
 
-  //cprintf("region_alloc(): lowerb = 0x%lx, upperb = 0x%lx (%d)\n", 
-   //       lowerb, upperb, pages_needed);
 
   // Watch out for edge cases
   if (lowerb <= 0)
@@ -319,16 +315,11 @@ region_alloc(struct Env *e, void *va, size_t len)
       r = -E_NO_MEM;
       panic("region_alloc: %e", r);
     }
-    //cprintf("region_alloc(): page p =  0x%lx\n", p);
 
     perm = PTE_W | PTE_U;
-    //pte = (pte_t *) pml4e_walk(e->env_pml4e,(void *) lowerb + i*PGSIZE,1);
-    //*pte = (pte_t) (page2pa(p) | PTE_W | PTE_U | PTE_P);
-
     if ((r = page_insert(e->env_pml4e, p, (void *) lowerb + i*PGSIZE, perm)) < 0) {
       panic("region_alloc: %e while trying to page_insert()", r);
     }
-    //cprintf("region_alloc(): page p has VA = 0x%lx\n", page2kva(p));
   }
 
 }
@@ -358,7 +349,6 @@ region_alloc(struct Env *e, void *va, size_t len)
 void
 load_icode(struct Env *e, uint8_t *binary)
 {
-    //cprintf("load_icode(): starting ... \n");
 	// Hints:
 	//  Load each program segment into virtual memory
 	//  at the address specified in the ELF section header.
@@ -402,10 +392,8 @@ load_icode(struct Env *e, uint8_t *binary)
   for (; ph < eph; ph++) {
     if (ph->p_type == ELF_PROG_LOAD) {
       assert(ph->p_filesz <= ph->p_memsz);
-      //cprintf("load_icode(): loading ph for ph=0x%x",ph);
       region_alloc(e, (void *) ph->p_va, ph->p_memsz);
       memset((void *) ph->p_va, 0, ph->p_memsz);
-      //cprintf("load_icode(): memset finished\n");
       memcpy((void *) ph->p_va, (void *) ELFHDR + ph->p_offset, ph->p_filesz);
     }
   }
