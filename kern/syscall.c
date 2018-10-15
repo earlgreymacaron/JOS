@@ -26,6 +26,7 @@ sys_cputs(const char *s, size_t len)
 
 	// LAB 3: Your code here.
 
+
 	// Print the string supplied by the user.
 	cprintf("%.*s", len, s);
 }
@@ -77,10 +78,23 @@ syscall(uint64_t syscallno, uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4, 
 
 	panic("syscall not implemented");
 
+
 	switch (syscallno) {
-		
-	default:
-		return -E_NO_SYS;
+    case(SYS_cputs):
+      sys_cputs((char *) a1, (size_t) a2);
+      return 0;
+
+    case(SYS_cgetc):
+      return sys_cgetc();
+
+    case(SYS_getenvid):
+      return sys_env_destroy((envid_t) a1);
+
+    case(SYS_env_destroy):
+      return sys_getenvid();
+
+	  default:
+		  return -E_INVAL;
 	}
 }
 

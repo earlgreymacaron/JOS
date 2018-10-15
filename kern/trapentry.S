@@ -49,6 +49,28 @@
    Find the PUSHA,POPA macros in kern/macro.h. Since amd64 doesn't support
    pusha,popa so you will find these macros handy.
  */
+TRAPHANDLER_NOEC(x_divide,0);
+TRAPHANDLER_NOEC(x_debug,1);
+TRAPHANDLER_NOEC(x_nmi,2);
+TRAPHANDLER_NOEC(x_brkpt,3);
+TRAPHANDLER_NOEC(x_oflow,4);
+TRAPHANDLER_NOEC(x_bound,5);
+TRAPHANDLER_NOEC(x_illop,6);
+TRAPHANDLER_NOEC(x_device,7);
+TRAPHANDLER(x_dbflt,8);
+TRAPHANDLER_NOEC(x_coproc,9);
+TRAPHANDLER(x_tss,10);
+TRAPHANDLER(x_segnp,11);
+TRAPHANDLER(x_stack,12);
+TRAPHANDLER(x_gpflt,13);
+TRAPHANDLER(x_pgflt,14);
+TRAPHANDLER_NOEC(x_res,15);
+TRAPHANDLER_NOEC(x_fperr,16);
+TRAPHANDLER(x_align,17);
+TRAPHANDLER_NOEC(x_mchk,18);
+TRAPHANDLER_NOEC(x_simderr,19);
+TRAPHANDLER_NOEC(x_syscall,48);
+TRAPHANDLER_NOEC(x_default,500);
 
 
 
@@ -58,4 +80,20 @@
  * Hint: Be sure to review the x64 calling convention from lab1
  *       for how to pass a pointer to the trapframe.
  */
+_alltraps:
+  sub     $0x10, %rsp
+  movw    %ds,8(%rsp)
+  movw    %es,(%rsp)
+  PUSHA
+  xorq    %rax, %rax
+  movw    $GD_KD, %rax
+  movw    %rax, %es
+  movw    %rax, %ds
+  movq    %rsp ,%rdi
+  call trap
+  POPA_
+  movw    (%rsp),%es
+  movw    8(%rsp),%ds
+  add     $0x10, %rsp
+  ret
 

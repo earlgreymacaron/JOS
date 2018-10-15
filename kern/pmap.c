@@ -25,6 +25,9 @@ physaddr_t boot_cr3;		// Physical address of boot time page directory
 struct PageInfo *pages;		// Physical page state array
 static struct PageInfo *page_free_list;	// Free list of physical pages
 static size_t size_of_pages;
+struct Env *envs;
+static size_t size_of_envs;
+
 // --------------------------------------------------------------
 // Detect machine's physical memory setup.
 // --------------------------------------------------------------
@@ -270,6 +273,9 @@ x64_vm_init(void)
 	//////////////////////////////////////////////////////////////////////
 	// Make 'envs' point to an array of size 'NENV' of 'struct Env'.
 	// LAB 3: Your code here.
+  size_of_envs = sizeof(struct Env)*NENV;
+	envs = boot_alloc(size_of_envs);
+
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
 	// up the list of free physical pages. Once we've done so, all further
@@ -300,6 +306,10 @@ x64_vm_init(void)
 	//    - the new image at UENVS  -- kernel R, user R
 	//    - envs itself -- kernel RW, user NONE
 	// LAB 3: Your code here.
+  perm = PTE_U | PTE_P;
+  boot_map_region(boot_pml4e, (uintptr_t) UENVS, size_of_envs, PADDR(envs), perm);
+  perm = PTE_W | PTE_P;
+  boot_map_region(boot_pml4e, (uintptr_t) envs, size_of_envs, PADDR(envs), perm);
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -384,7 +394,7 @@ page_init(void)
 	size_t i;
 	struct PageInfo* last = NULL; //points to the last free page 
 	physaddr_t PA; 
-
+  void *bound;
 
 
   // Handle physical page 0
@@ -397,20 +407,8 @@ page_init(void)
 
     // Pages that is used for others
     PA = page2pa(&pages[i]);
-    if(PA >= IOPHYSMEM && PA < EXTPHYSMEM) {
-        pages[i].pp_ref = 1;
-        continue;
-        /*
-    } else if (PA >= 0x100000 && PA < 0x102000) {
-        pages[i].pp_ref = 1;
-        continue;
-    } else if (PA >= PADDR(BOOT_PAGE_TABLE_START) && PA < PADDR(BOOT_PAGE_TABLE_END) ) {
-        pages[i].pp_ref = 1;
-        continue; 
-    } else if (PA >= 0x200000 && PA < 0x2f0000 ) {
-        pages[i].pp_ref = 1;
-        continue; */
-    } else if (PA >= EXTPHYSMEM && PA < PADDR(pages) + size_of_pages) {
+    bound = boot_alloc(0);
+    if (page2kva(&pages[i]) < bound) {
         pages[i].pp_ref = 1;
         continue; 
     }
@@ -993,7 +991,7 @@ check_page_alloc(void)
 		assert(page2pa(pp0) != EXTPHYSMEM - PGSIZE);
 		assert(page2pa(pp0) != EXTPHYSMEM);
 	}
-	
+
   // should be able to allocate three pages
 	pp0 = pp1 = pp2 = 0;
 	assert((pp0 = page_alloc(0)));

@@ -65,10 +65,64 @@ trap_init(void)
 {
 	extern struct Segdesc gdt[];
 
-	// LAB 3: Your code here.
+  extern void x_divide();
+	extern void x_debug();
+	extern void x_nmi();
+	extern void x_brkpt();
+	extern void x_oflow();
+	extern void x_bound();
+	extern void x_illop();
+	extern void x_device();
+	extern void x_dbflt();
+	extern void x_coproc();
+	extern void x_tss();
+	extern void x_segnp();
+	extern void x_stack();
+	extern void x_gpflt();
+	extern void x_pgflt();
+	extern void x_res();
+	extern void x_fperr();
+	extern void x_align();
+	extern void x_mchk();
+	extern void x_simderr();
+  extern void x_syscall();
+  extern void x_default();
+
+  size_t i;
+	
+  // LAB 3: Your code here.
 	idt_pd.pd_lim = sizeof(idt)-1;
 	idt_pd.pd_base = (uint64_t)idt;
-	// Per-CPU setup
+	
+  SETGATE(idt[0], 1, GD_KT, x_divide, 0);
+  SETGATE(idt[1], 1, GD_KT, x_debug, 0);
+  SETGATE(idt[2], 1, GD_KT, x_nmi, 0);
+  SETGATE(idt[3], 1, GD_KT, x_brkpt, 0);
+  SETGATE(idt[4], 1, GD_KT, x_oflow, 0);
+  SETGATE(idt[5], 1, GD_KT, x_bound, 0);
+  SETGATE(idt[6], 1, GD_KT, x_illop, 0);
+  SETGATE(idt[7], 1, GD_KT, x_device, 0);
+  SETGATE(idt[8], 1, GD_KT, x_dbflt, 0);
+  SETGATE(idt[9], 1, GD_KT, x_coproc, 0);
+  SETGATE(idt[10], 1, GD_KT, x_tss, 0);
+  SETGATE(idt[11], 1, GD_KT, x_segnp, 0);
+  SETGATE(idt[12], 1, GD_KT, x_stack, 0);
+  SETGATE(idt[13], 1, GD_KT, x_gpflt, 0);
+  SETGATE(idt[14], 1, GD_KT, x_pgflt, 0);
+  SETGATE(idt[15], 1, GD_KT, x_res, 0);
+  SETGATE(idt[16], 1, GD_KT, x_fperr, 0);
+  SETGATE(idt[17], 1, GD_KT, x_align, 0);
+  SETGATE(idt[18], 1, GD_KT, x_mchk, 0);
+  SETGATE(idt[19], 1, GD_KT, x_simderr, 0);
+
+  for(i = 20; i < 256; i++) {
+    if(i == 48) {   // System Call
+        SETGATE(idt[i], 1, GD_KT, x_syscall, 0);
+    } else
+        SETGATE(idt[i], 1, GD_KT, x_default, 0);
+  }
+  
+  // Per-CPU setup
 	trap_init_percpu();
 }
 
@@ -149,6 +203,21 @@ trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
+  
+  uint64_t ret_val;
+
+  if (tf->tf_trapno == T_PGFLT) {
+    page_fault_handler(tf);
+    return;
+  } else if (tf->tf_trapno == T_BRKPT) {
+    monitor(tf);
+    return;
+  } else if (tf->tf_trapno == T_SYSCALL) {
+    ret_val = syscall(tf->tf_regs.reg_rax, tf->tf_regs.reg_rdx, tf->tf_regs.reg_rcx,
+                tf->tf_regs.reg_rbx, tf->tf_regs.reg_rdi, tf->tf_regs.reg_rsi);
+    tf->tf_regs.reg_rax = ret_val;
+    return;
+  }
 
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
