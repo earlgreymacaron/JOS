@@ -97,7 +97,7 @@ trap_init(void)
   SETGATE(idt[0], 1, GD_KT, x_divide, 0);
   SETGATE(idt[1], 1, GD_KT, x_debug, 0);
   SETGATE(idt[2], 1, GD_KT, x_nmi, 0);
-  SETGATE(idt[3], 1, GD_KT, x_brkpt, 0);
+  SETGATE(idt[3], 1, GD_KT, x_brkpt, 3);
   SETGATE(idt[4], 1, GD_KT, x_oflow, 0);
   SETGATE(idt[5], 1, GD_KT, x_bound, 0);
   SETGATE(idt[6], 1, GD_KT, x_illop, 0);
@@ -117,7 +117,7 @@ trap_init(void)
 
   for(i = 20; i < 256; i++) {
     if(i == 48) {   // System Call
-        SETGATE(idt[i], 1, GD_KT, x_syscall, 0);
+        SETGATE(idt[i], 1, GD_KT, x_syscall, 3);
     } else
         SETGATE(idt[i], 1, GD_KT, x_default, 0);
   }
@@ -203,16 +203,18 @@ trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
-  
+
   uint64_t ret_val;
 
   if (tf->tf_trapno == T_PGFLT) {
     page_fault_handler(tf);
     return;
-  } else if (tf->tf_trapno == T_BRKPT) {
+  }
+  if (tf->tf_trapno == T_BRKPT) {
     monitor(tf);
     return;
-  } else if (tf->tf_trapno == T_SYSCALL) {
+  }
+  if (tf->tf_trapno == T_SYSCALL) {
     ret_val = syscall(tf->tf_regs.reg_rax, tf->tf_regs.reg_rdx, tf->tf_regs.reg_rcx,
                 tf->tf_regs.reg_rbx, tf->tf_regs.reg_rdi, tf->tf_regs.reg_rsi);
     tf->tf_regs.reg_rax = ret_val;
@@ -278,8 +280,11 @@ page_fault_handler(struct Trapframe *tf)
 	fault_va = rcr2();
 
 	// Handle kernel-mode page faults.
-
 	// LAB 3: Your code here.
+  if (!(tf->tf_cs & 3)) {
+	  panic("[%08x] kernel page fault va %08x ip %08x\n",
+		    curenv->env_id, fault_va, tf->tf_rip);
+  }
 
 	// We've already handled kernel-mode exceptions, so if we get here,
 	// the page fault happened in user mode.

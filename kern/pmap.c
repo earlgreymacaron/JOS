@@ -873,7 +873,56 @@ int
 user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 {
 	// LAB 3: Your code here.
-	return 0;
+  uintptr_t lowerb, upperb, addr, test_addr;
+  struct PageInfo *p;
+  pte_t *pte;
+  int i;
+  size_t pages_to_check;
+
+  cprintf("user_mem_check(): va = 0x%lx, len = 0x%lx\n", va, len);
+
+  lowerb = ROUNDDOWN((uint64_t) va, PGSIZE);
+  upperb = ROUNDUP((uint64_t) (va + len), PGSIZE);
+  pages_to_check = (upperb - lowerb) / PGSIZE ;
+  cprintf("pages to check = %d\n",pages_to_check);
+
+  perm = perm | PTE_P;
+
+
+  // Check each page
+  for (i = 0; i < pages_to_check; i++) {
+    test_addr = lowerb + i*PGSIZE;
+    cprintf("test_addr = 0x%lx\n", test_addr);
+
+    // Watch out for edge cases
+    if (test_addr <= 0) {
+      user_mem_check_addr = (uintptr_t) va;
+      return -E_FAULT;
+    }
+    if (test_addr > ULIM) {
+      user_mem_check_addr = (uintptr_t) test_addr;
+      return -E_FAULT;
+    }
+
+    pte = (pte_t *) pml4e_walk(curenv->env_pml4e,(void *) test_addr ,0);
+    addr = *pte;
+
+
+    // Not mapped
+    if (!pte) {
+      user_mem_check_addr = (uintptr_t) test_addr;
+      return -E_FAULT;
+    }
+
+    // No permission
+    if ((addr & perm) != perm) {
+      user_mem_check_addr = (uintptr_t) test_addr;
+      return -E_FAULT;
+    }
+  }
+  //cprintf("user_mem_check() finish");
+
+  return 0;
 
 }
 
