@@ -507,7 +507,7 @@ env_destroy(struct Env *e)
 	env_free(e);
 	cprintf("Destroyed the only environment - nothing more to do!\n");
 	while (1)
-		monitor(NULL);
+		monitor(NULL,false);
 }
 
 

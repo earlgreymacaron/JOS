@@ -95,7 +95,7 @@ _panic(const char *file, int line, const char *fmt,...)
 dead:
 	/* break into the kernel monitor */
 	while (1)
-		monitor(NULL);
+		monitor(NULL,false);
 }
 
 /* like panic, but don't */

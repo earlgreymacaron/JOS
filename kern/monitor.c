@@ -14,8 +14,8 @@
 #include <kern/dwarf_api.h>
 #include <kern/trap.h>
 
-#define CMDBUF_SIZE	80	// enough for one VGA text line
-
+#define CMDBUF_SIZE	80	        // enough for one VGA text line
+#define TRAP_FLAG   (1 << 8)    // Trap flag in EFLAGS
 
 struct Command {
 	const char *name;
@@ -142,15 +142,58 @@ runcmd(char *buf, struct Trapframe *tf)
 }
 
 void
-monitor(struct Trapframe *tf)
+monitor(struct Trapframe *tf, bool is_brkpt)
 {
 	char *buf;
+  uintptr_t rip;
+  size_t trapno;
 
 	cprintf("Welcome to the JOS kernel monitor!\n");
 	cprintf("Type 'help' for a list of commands.\n");
 
-	if (tf != NULL)
-		print_trapframe(tf);
+  if (tf != NULL)
+    print_trapframe(tf);
+
+  // If monitor was invoked by breakpoint exception,
+  // 'continue' execution from the current location
+  if(is_brkpt) {
+
+	  //cprintf("\nWelcome to the JOS_GDB monitor!\n");
+    cprintf("Breakpoint exception at 0x%lx\n",tf->tf_rip);
+    cprintf("ni -  Single-step execution\n");
+    cprintf("c -  Contintue execution\n");
+
+
+    // GDB mode due to breakpoint exception
+    while(1) {
+
+      buf = readline("K(GDB)> ");
+
+      if (strcmp(buf,"ni") == 0) {
+        cprintf("Single-step execution\n");
+
+        // Set trap flag
+        tf->tf_eflags |= TRAP_FLAG;
+        //tf->tf_trapno = T_BRKPT;
+
+        // Continue execution
+        rip = tf->tf_rip;
+        //cprintf("rip=0x%lx\n",rip);
+        asm volatile("jmp *%0" : : "r" (rip));
+
+        if (tf != NULL)
+          print_trapframe(tf);
+
+      } else if (strcmp(buf, "c") == 0) {
+        // Continue execution
+        cprintf("Continue execution\n");
+        break;
+
+      } else {
+        cprintf("%s: undefined instruction\n",buf);
+      }
+    }
+  }
 
 	while (1) {
 		buf = readline("K> ");

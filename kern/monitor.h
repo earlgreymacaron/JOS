@@ -9,7 +9,7 @@ struct Trapframe;
 // Activate the kernel monitor,
 // optionally providing a trap frame indicating the current state
 // (NULL if none).
-void monitor(struct Trapframe *tf);
+void monitor(struct Trapframe *tf, bool is_brkpt);
 
 // Functions implementing monitor commands.
 int mon_help(int argc, char **argv, struct Trapframe *tf);

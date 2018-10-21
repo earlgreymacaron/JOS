@@ -89,11 +89,11 @@ trap_init(void)
   extern void x_default();
 
   size_t i;
-	
+
   // LAB 3: Your code here.
 	idt_pd.pd_lim = sizeof(idt)-1;
 	idt_pd.pd_base = (uint64_t)idt;
-	
+
   SETGATE(idt[0], 1, GD_KT, x_divide, 0);
   SETGATE(idt[1], 1, GD_KT, x_debug, 0);
   SETGATE(idt[2], 1, GD_KT, x_nmi, 0);
@@ -107,7 +107,7 @@ trap_init(void)
   SETGATE(idt[10], 1, GD_KT, x_tss, 0);
   SETGATE(idt[11], 1, GD_KT, x_segnp, 0);
   SETGATE(idt[12], 1, GD_KT, x_stack, 0);
-  SETGATE(idt[13], 1, GD_KT, x_gpflt, 0);
+  SETGATE(idt[13], 1, GD_KT, x_gpflt, 3);
   SETGATE(idt[14], 1, GD_KT, x_pgflt, 0);
   SETGATE(idt[15], 1, GD_KT, x_res, 0);
   SETGATE(idt[16], 1, GD_KT, x_fperr, 0);
@@ -210,8 +210,8 @@ trap_dispatch(struct Trapframe *tf)
     page_fault_handler(tf);
     return;
   }
-  if (tf->tf_trapno == T_BRKPT) {
-    monitor(tf);
+  if (tf->tf_trapno == T_BRKPT || tf->tf_trapno == T_DEBUG) {
+    monitor(tf,true);
     return;
   }
   if (tf->tf_trapno == T_SYSCALL) {
